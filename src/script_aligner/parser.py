@@ -58,9 +58,14 @@ def _autoset_ltol_rtol(
 
     # This is a distribution of the whitespace at the start and end of each line.
     # Create a histogram of the whitespace at the start and end of each line.
-    start_histogram = {
-        i: start_whitespaces.count(i) / len(start_whitespaces) for i in range(max(start_whitespaces) + 1)
-    }
+    try:
+        start_histogram = {
+            i: start_whitespaces.count(i) / len(start_whitespaces) for i in range(max(start_whitespaces) + 1)
+        }
+    except ValueError:
+        # Maybe the max iterable argument is empty. In that case, just return the default value.
+        logging.warning(f"AutoAligner: Could not determine ltol from auto-aligner: {start_whitespaces}")
+        return ltol or 8, rtol or 6
     # end_histogram = {i: end_whitespaces.count(i) for i in range(max(end_whitespaces) + 1)}
 
     # Split the histogram into chunks separated by 0s
@@ -173,7 +178,7 @@ def _extract_blocks(
                 for b in block_chunks:
                     output_blocks_with_alignment.append((b, "C/2"))
             else:
-                logging.warning(f"Unknown Block Alignment: {block_info}")
+                logging.debug(f"Unknown Block Alignment: {block_info}")
                 pass
 
     # We can strip all of the individual lines now

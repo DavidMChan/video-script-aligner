@@ -15,6 +15,7 @@ def save_alignment_to_html(alignment, script_data, sub_data, output_path: str):
         else:
             table.add_row(f"{script_data[i]['text']}", f"{sub_data[j]['text']}")
 
+    # Save the table to an HTML file, but don't print it to the console
     console = Console(record=True)
     console.print(table)
     console.save_html(output_path)
