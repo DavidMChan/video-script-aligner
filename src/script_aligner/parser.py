@@ -40,7 +40,14 @@ def _line_length(line: str, script_width: int) -> int:
     # If the line is shorter than the script, pad it with whitespace.
     return len(line) + (script_width - len(line))
 
-def _autoset_ltol_rtol(blocks: list, script_width: int, ltol: int | None = None, rtol: int | None = None, auto_aligner_tolerance: float = 0.01) -> tuple[int, int]:
+
+def _autoset_ltol_rtol(
+    blocks: list,
+    script_width: int,
+    ltol: int | None = None,
+    rtol: int | None = None,
+    auto_aligner_tolerance: float = 0.01,
+) -> tuple[int, int]:
     logging.info(f"AutoAligner: Setting ltol and rtol with auto-aligner tolerance of {auto_aligner_tolerance}%")
     start_whitespaces = []
     end_whitespaces = []
@@ -51,7 +58,9 @@ def _autoset_ltol_rtol(blocks: list, script_width: int, ltol: int | None = None,
 
     # This is a distribution of the whitespace at the start and end of each line.
     # Create a histogram of the whitespace at the start and end of each line.
-    start_histogram = {i: start_whitespaces.count(i) / len(start_whitespaces) for i in range(max(start_whitespaces) + 1)}
+    start_histogram = {
+        i: start_whitespaces.count(i) / len(start_whitespaces) for i in range(max(start_whitespaces) + 1)
+    }
     # end_histogram = {i: end_whitespaces.count(i) for i in range(max(end_whitespaces) + 1)}
 
     # Split the histogram into chunks separated by 0s
@@ -78,8 +87,6 @@ def _autoset_ltol_rtol(blocks: list, script_width: int, ltol: int | None = None,
     logging.info(f"AutoAligner: Setting rtol to {rtol or 6}")
 
     return ltol or 8, rtol or 6
-
-
 
 
 def _determine_block_alignment(
@@ -115,7 +122,14 @@ def _determine_block_alignment(
     return "U", block_info
 
 
-def _extract_blocks(script_lines: list, script_width: int, script_indent: int, ltol: int | None = None, rtol: int | None = 6, auto_aligner_tolerance: float = 0.01) -> list:
+def _extract_blocks(
+    script_lines: list,
+    script_width: int,
+    script_indent: int,
+    ltol: int | None = None,
+    rtol: int | None = 6,
+    auto_aligner_tolerance: float = 0.01,
+) -> list:
     # Return a list of blocks, where each block is a list of lines, and the alignment of the block.
 
     # Step 1: There is a '\n\n' between each block. Split the script into blocks.
@@ -279,7 +293,9 @@ def _parse_extracted_blocks(blocks: list) -> list:
     return merged_blocks
 
 
-def parse_script_to_blocks(script_path: str, ltol: int | None = None, rtol: int | None = 6, auto_aligner_tolerance: float = 0.01) -> list:
+def parse_script_to_blocks(
+    script_path: str, ltol: int | None = None, rtol: int | None = 6, auto_aligner_tolerance: float = 0.01
+) -> list:
     script_lines, script_width, script_indent = _read_script(script_path)
     blocks = _extract_blocks(script_lines, script_width, script_indent, ltol, rtol, auto_aligner_tolerance)
     return _parse_extracted_blocks(blocks)

@@ -1,11 +1,11 @@
 import json
 from functools import lru_cache
 from xml.etree import ElementTree
-from rich.progress import Progress
 
 import numpy as np
 import pysrt
 from Levenshtein import distance
+from rich.progress import Progress
 
 NORM = None
 
