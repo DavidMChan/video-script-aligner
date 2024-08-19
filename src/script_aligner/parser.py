@@ -40,6 +40,47 @@ def _line_length(line: str, script_width: int) -> int:
     # If the line is shorter than the script, pad it with whitespace.
     return len(line) + (script_width - len(line))
 
+def _autoset_ltol_rtol(blocks: list, script_width: int, ltol: int | None = None, rtol: int | None = None, auto_aligner_tolerance: float = 0.01) -> tuple[int, int]:
+    logging.info(f"AutoAligner: Setting ltol and rtol with auto-aligner tolerance of {auto_aligner_tolerance}%")
+    start_whitespaces = []
+    end_whitespaces = []
+    for block in blocks:
+        for line in block:
+            start_whitespaces.append(len(line) - len(line.lstrip()))
+            end_whitespaces.append(script_width - len(line.rstrip()))
+
+    # This is a distribution of the whitespace at the start and end of each line.
+    # Create a histogram of the whitespace at the start and end of each line.
+    start_histogram = {i: start_whitespaces.count(i) / len(start_whitespaces) for i in range(max(start_whitespaces) + 1)}
+    # end_histogram = {i: end_whitespaces.count(i) for i in range(max(end_whitespaces) + 1)}
+
+    # Split the histogram into chunks separated by 0s
+    start_histogram_chunks = []
+    current_chunk = []
+    for i in range(max(start_whitespaces) + 1):
+        if start_histogram[i] < auto_aligner_tolerance:
+            if current_chunk:
+                start_histogram_chunks.append(current_chunk)
+                current_chunk = []
+        else:
+            current_chunk.append(i)
+
+    # Remove empty chunks
+    start_histogram_chunks = [chunk for chunk in start_histogram_chunks if chunk]
+    # Get the biggest number in the second chunk, if it exists
+    if len(start_histogram_chunks) > 1:
+        ltol = max(start_histogram_chunks[1]) + 1
+        logging.info(f"AutoAligner: Setting ltol to {ltol}")
+    else:
+        logging.warn(f"AutoAligner: Could not determine ltol from auto-aligner: {start_histogram_chunks}")
+        ltol = None
+
+    logging.info(f"AutoAligner: Setting rtol to {rtol or 6}")
+
+    return ltol or 8, rtol or 6
+
+
+
 
 def _determine_block_alignment(
     block: list, script_width: int, script_indent: int, ltol: int = 8, rtol: int = 6
@@ -74,7 +115,7 @@ def _determine_block_alignment(
     return "U", block_info
 
 
-def _extract_blocks(script_lines: list, script_width: int, script_indent: int, ltol: int = 8, rtol: int = 6) -> list:
+def _extract_blocks(script_lines: list, script_width: int, script_indent: int, ltol: int | None = None, rtol: int | None = 6, auto_aligner_tolerance: float = 0.01) -> list:
     # Return a list of blocks, where each block is a list of lines, and the alignment of the block.
 
     # Step 1: There is a '\n\n' between each block. Split the script into blocks.
@@ -85,9 +126,6 @@ def _extract_blocks(script_lines: list, script_width: int, script_indent: int, l
             blocks.append(block)
             block = []
         else:
-            # Filter page numbers which can be broken in terms of alignment
-            # if line.strip().replace(".", "").replace("A", "").isdigit():
-            #     continue
             block.append(line)
 
     # Filter out empty blocks.
@@ -95,6 +133,10 @@ def _extract_blocks(script_lines: list, script_width: int, script_indent: int, l
 
     # Step 2: Determine the alignment of each block.
     # Blocks are either left-aligned, right-aligned, or centered with an indent.
+    if ltol is None or rtol is None:
+        # We need to determine the left and right tolerance for block alignment.
+        # We'll do this by looking at the whitespace at the beginning and end of each line.
+        ltol, rtol = _autoset_ltol_rtol(blocks, script_width, ltol, rtol, auto_aligner_tolerance)
 
     output_blocks_with_alignment = []
     for block in blocks:
@@ -237,38 +279,7 @@ def _parse_extracted_blocks(blocks: list) -> list:
     return merged_blocks
 
 
-def parse_script_to_blocks(script_path: str, ltol: int = 8, rtol: int = 6) -> list:
+def parse_script_to_blocks(script_path: str, ltol: int | None = None, rtol: int | None = 6, auto_aligner_tolerance: float = 0.01) -> list:
     script_lines, script_width, script_indent = _read_script(script_path)
-    blocks = _extract_blocks(script_lines, script_width, script_indent, ltol, rtol)
+    blocks = _extract_blocks(script_lines, script_width, script_indent, ltol, rtol, auto_aligner_tolerance)
     return _parse_extracted_blocks(blocks)
-
-
-# def main():
-#     # Scripts are written in blocks of lines, which are either left-aligned, right-aligned, or centered with an indent.
-#     # We need to extract all of the blocks, and determine their alignment.
-
-#     script_lines, script_width, script_indent = _read_script(
-#         # "/Users/davidchan/Projects/script-parser/test-data/Zootopia.txt"
-#         # "/Users/davidchan/Projects/script-parser/test-data/A-Quiet-Place.txt"
-#         # "/home/davidchan/Projects/script-parser/AQP/A-Quiet-Place.txt"
-#         "/home/davidchan/Projects/script-parser/LALA/La-La-Land.txt"
-#         # "/Users/davidchan/Projects/script-parser/test-data/Wizard-of-Oz-The.txt"
-#     )
-#     blocks = _extract_blocks(script_lines, script_width, script_indent)
-
-#     parsed_blocks = _parse_extracted_blocks(blocks)
-
-#     with open("lala.jsonl", "w") as f:
-#         for block in parsed_blocks:
-#             f.write(json.dumps(block, ensure_ascii=False) + "\n")
-
-
-if __name__ == "__main__":
-    # Set up logging
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(message)s",
-        handlers=[logging.FileHandler("parse.log"), logging.StreamHandler()],
-    )
-
-    # main()

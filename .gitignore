@@ -135,7 +135,6 @@ scripts/*.json
 *.json
 .ruff_cache
 *.mp4
-*.txt
 *.vtt
 *.jpg
 *.zip
@@ -144,3 +143,4 @@ scripts/*.json
 *.bak
 
 test_images/
+*.html
